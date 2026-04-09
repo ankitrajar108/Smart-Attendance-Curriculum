@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String          @id @default(cuid())
+  email          String          @unique
+  passwordHash   String
+  name           String
+  role           String          @default("STUDENT") // STUDENT | TEACHER | ADMIN
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  studentProfile StudentProfile?
+  teacherProfile TeacherProfile?
+}
+
+model StudentProfile {
+  id               String             @id @default(cuid())
+  userId           String             @unique
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interests        String             @default("") // comma-separated
+  careerGoals      String             @default("")
+  enrollments      ClassEnrollment[]
+  attendanceRecords AttendanceRecord[]
+  personalGoals    PersonalGoal[]
+  createdAt        DateTime           @default(now())
+}
+
+model TeacherProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department  String   @default("")
+  classes     Class[]
+  createdAt   DateTime @default(now())
+}
+
+model Class {
+  id              String           @id @default(cuid())
+  courseName      String
+  courseCode      String           @unique
+  teacherId       String
+  teacher         TeacherProfile   @relation(fields: [teacherId], references: [id])
+  timetableSlots  TimetableSlot[]
+  enrollments     ClassEnrollment[]
+  createdAt       DateTime         @default(now())
+}
+
+model ClassEnrollment {
+  id        String         @id @default(cuid())
+  studentId String
+  classId   String
+  student   StudentProfile @relation(fields: [studentId], references: [id])
+  class     Class          @relation(fields: [classId], references: [id])
+  createdAt DateTime       @default(now())
+
+  @@unique([studentId, classId])
+}
+
+model TimetableSlot {
+  id                String             @id @default(cuid())
+  classId           String
+  class             Class              @relation(fields: [classId], references: [id])
+  dayOfWeek         String             // MONDAY | TUESDAY | ...
+  startTime         String             // "09:00"
+  endTime           String             // "10:30"
+  room              String             @default("")
+  attendanceRecords AttendanceRecord[]
+  createdAt         DateTime           @default(now())
+}
+
+model AttendanceRecord {
+  id              String         @id @default(cuid())
+  studentId       String
+  timetableSlotId String
+  student         StudentProfile @relation(fields: [studentId], references: [id])
+  timetableSlot   TimetableSlot  @relation(fields: [timetableSlotId], references: [id])
+  status          String         @default("PRESENT") // PRESENT | ABSENT | LATE
+  markedAt        DateTime       @default(now())
+  createdAt       DateTime       @default(now())
+
+  @@unique([studentId, timetableSlotId, createdAt])
+}
+
+model ActivitySuggestion {
+  id              String   @id @default(cuid())
+  title           String
+  description     String
+  category        String   // Academic | Assignment | Personal | Sport | Career
+  estimatedTime   Int      // minutes
+  relevantCourses String   @default("") // comma-separated course codes
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+}
+
+model PersonalGoal {
+  id          String         @id @default(cuid())
+  studentId   String
+  student     StudentProfile @relation(fields: [studentId], references: [id])
+  title       String
+  description String         @default("")
+  progress    Int            @default(0) // 0-100
+  deadline    DateTime?
+  isCompleted Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}

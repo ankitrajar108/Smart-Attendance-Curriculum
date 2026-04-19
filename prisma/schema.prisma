@@ -20,15 +20,16 @@ model User {
 }
 
 model StudentProfile {
-  id               String             @id @default(cuid())
-  userId           String             @unique
-  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  interests        String             @default("") // comma-separated
-  careerGoals      String             @default("")
-  enrollments      ClassEnrollment[]
-  attendanceRecords AttendanceRecord[]
-  personalGoals    PersonalGoal[]
-  createdAt        DateTime           @default(now())
+  id                   String                       @id @default(cuid())
+  userId               String                       @unique
+  user                 User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interests            String                       @default("") // comma-separated
+  careerGoals          String                       @default("")
+  enrollments          ClassEnrollment[]
+  attendanceRecords    AttendanceRecord[]
+  personalGoals        PersonalGoal[]
+  activityInteractions StudentActivityInteraction[]
+  createdAt            DateTime                     @default(now())
 }
 
 model TeacherProfile {
@@ -41,14 +42,14 @@ model TeacherProfile {
 }
 
 model Class {
-  id              String           @id @default(cuid())
-  courseName      String
-  courseCode      String           @unique
-  teacherId       String
-  teacher         TeacherProfile   @relation(fields: [teacherId], references: [id])
-  timetableSlots  TimetableSlot[]
-  enrollments     ClassEnrollment[]
-  createdAt       DateTime         @default(now())
+  id             String            @id @default(cuid())
+  courseName     String
+  courseCode     String            @unique
+  teacherId      String
+  teacher        TeacherProfile    @relation(fields: [teacherId], references: [id])
+  timetableSlots TimetableSlot[]
+  enrollments    ClassEnrollment[]
+  createdAt      DateTime          @default(now())
 }
 
 model ClassEnrollment {
@@ -81,6 +82,7 @@ model AttendanceRecord {
   student         StudentProfile @relation(fields: [studentId], references: [id])
   timetableSlot   TimetableSlot  @relation(fields: [timetableSlotId], references: [id])
   status          String         @default("PRESENT") // PRESENT | ABSENT | LATE
+  note            String         @default("") // reason note added by teacher
   markedAt        DateTime       @default(now())
   createdAt       DateTime       @default(now())
 
@@ -88,14 +90,28 @@ model AttendanceRecord {
 }
 
 model ActivitySuggestion {
-  id              String   @id @default(cuid())
+  id              String                       @id @default(cuid())
   title           String
   description     String
-  category        String   // Academic | Assignment | Personal | Sport | Career
-  estimatedTime   Int      // minutes
-  relevantCourses String   @default("") // comma-separated course codes
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
+  category        String                       // Academic | Assignment | Personal | Sport | Career
+  estimatedTime   Int                          // minutes
+  relevantCourses String                       @default("") // comma-separated course codes
+  isActive        Boolean                      @default(true)
+  interactions    StudentActivityInteraction[]
+  createdAt       DateTime                     @default(now())
+}
+
+model StudentActivityInteraction {
+  id           String             @id @default(cuid())
+  studentId    String
+  suggestionId String
+  status       String             // COMPLETED | NOT_INTERESTED
+  student      StudentProfile     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  suggestion   ActivitySuggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@unique([studentId, suggestionId])
 }
 
 model PersonalGoal {
